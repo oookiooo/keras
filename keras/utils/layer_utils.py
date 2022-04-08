@@ -518,15 +518,15 @@ def filter_empty_layer_containers(layer_list):
 class CallFunctionSpec:
   """Caches the spec and provides utilities for handling call function args."""
 
-  def __init__(self, fn):
+  def __init__(self, full_argspec):
     """Initialies a `CallFunctionSpec`.
 
     Args:
-      fn: the call function of a layer.
+      full_argspec: the FullArgSpec of a call function of a layer.
     """
-    self._full_argspec = tf_inspect.getfullargspec(fn)
+    self._full_argspec = full_argspec
 
-    self._arg_names = self._full_argspec.args
+    self._arg_names = list(self._full_argspec.args)
     # Scrub `self` that appears if a decorator was applied.
     if self._arg_names and self._arg_names[0] == 'self':
       self._arg_names = self._arg_names[1:]
