@@ -33,6 +33,10 @@ from tensorflow.tools.docs import doc_controls
 H_AXIS = -3
 W_AXIS = -2
 
+INPUT_KEY_IMAGES = 'images'
+INPUT_KEY_LABELS = 'labels'
+INPUT_KEY_BOUNDING_BOX = 'bounding_boxes'
+
 
 def check_fill_mode_and_interpolation(fill_mode, interpolation):
   if fill_mode not in {'reflect', 'wrap', 'constant', 'nearest'}:
@@ -383,7 +387,7 @@ class BaseImageAugmentationLayer(base_layer.BaseRandomLayer):
     inputs = self._ensure_inputs_are_compute_dtype(inputs)
     if training:
       inputs, is_dict = self._format_inputs(inputs)
-      images = inputs['images']
+      images = inputs[INPUT_KEY_IMAGES]
       if images.shape.rank == 3:
         return self._format_output(self._augment(inputs), is_dict)
       elif images.shape.rank == 4:
@@ -396,20 +400,20 @@ class BaseImageAugmentationLayer(base_layer.BaseRandomLayer):
       return inputs
 
   def _augment(self, inputs):
-    image = inputs.get('images', None)
-    label = inputs.get('labels', None)
-    bounding_box = inputs.get('bounding_boxes', None)
+    image = inputs.get(INPUT_KEY_IMAGES, None)
+    label = inputs.get(INPUT_KEY_LABELS, None)
+    bounding_box = inputs.get(INPUT_KEY_BOUNDING_BOX, None)
     transformation = self.get_random_transformation(
         image=image, label=label, bounding_box=bounding_box)  # pylint: disable=assignment-from-none
     image = self.augment_image(image, transformation=transformation)
-    result = {'images': image}
+    result = {INPUT_KEY_IMAGES: image}
     if label is not None:
       label = self.augment_label(label, transformation=transformation)
-      result['labels'] = label
+      result[INPUT_KEY_LABELS] = label
     if bounding_box is not None:
       bounding_box = self.augment_bounding_box(
           bounding_box, transformation=transformation)
-      result['bounding_boxes'] = bounding_box
+      result[INPUT_KEY_BOUNDING_BOX] = bounding_box
     return result
 
   def _batch_augment(self, inputs):
@@ -418,7 +422,7 @@ class BaseImageAugmentationLayer(base_layer.BaseRandomLayer):
   def _format_inputs(self, inputs):
     if tf.is_tensor(inputs):
       # single image input tensor
-      return {'images': inputs}, False
+      return {INPUT_KEY_IMAGES: inputs}, False
     elif isinstance(inputs, dict):
       # TODO(scottzhu): Check if it only contains the valid keys
       return inputs, True
@@ -428,13 +432,13 @@ class BaseImageAugmentationLayer(base_layer.BaseRandomLayer):
 
   def _format_output(self, output, is_dict):
     if not is_dict:
-      return output['images']
+      return output[INPUT_KEY_IMAGES]
     else:
       return output
 
   def _ensure_inputs_are_compute_dtype(self, inputs):
     if isinstance(inputs, dict):
-      inputs['images'] = utils.ensure_tensor(inputs['images'],
+      inputs[INPUT_KEY_IMAGES] = utils.ensure_tensor(inputs[INPUT_KEY_IMAGES],
                                              self.compute_dtype)
     else:
       inputs = utils.ensure_tensor(inputs, self.compute_dtype)
@@ -1676,8 +1680,8 @@ class RandomHeight(BaseImageAugmentationLayer):
     return {'height': adjusted_height}
 
   def _batch_augment(self, inputs):
-    images = self.augment_image(inputs['images'], transformation=None)
-    result = {'images': images}
+    images = self.augment_image(inputs[INPUT_KEY_IMAGES], transformation=None)
+    result = {INPUT_KEY_IMAGES: images}
     # to-do augment bbox to clip bbox to resized height value
     return result
 
@@ -1780,8 +1784,8 @@ class RandomWidth(BaseImageAugmentationLayer):
     self.auto_vectorize = False
 
   def _batch_augment(self, inputs):
-    images = self.augment_image(inputs['images'])
-    result = {'images': images}
+    images = self.augment_image(inputs[INPUT_KEY_IMAGES])
+    result = {INPUT_KEY_IMAGES: images}
     # to-do augment bbox to clip bbox to resized width value
     return result
 
